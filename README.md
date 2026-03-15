@@ -1,1 +1,1 @@
-These are my Implemented examples of MultiThreading in JAVA.
+These are my Implemented examples in JAVA.
