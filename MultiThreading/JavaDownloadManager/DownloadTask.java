@@ -1,13 +1,19 @@
 package JavaDownloadManager;
 
-public class DownloadTask implements Runnable{
-    private boolean suspendFlag;
-    private boolean terminateFlag;
-    private String link;
-    private long SizeInBits;
+class DownloadTask implements Runnable{
 
-    DownloadTask(String link) {
+    private final String link;
+    private final String ID;
+
+    private volatile long sizeInBytes;
+
+    private volatile boolean suspendFlag;
+    private volatile boolean terminateFlag;
+    private DownloadStatus STATUS =  DownloadStatus.QUEUED;
+
+    DownloadTask(String link, String ID) {
         this.link = link;
+        this.ID = ID;
     }
 
     boolean isSuspendFlag() {
@@ -26,23 +32,33 @@ public class DownloadTask implements Runnable{
         this.terminateFlag = terminateFlag;
     }
 
-    long getSizeInBits() {
-        return SizeInBits;
+    long getSizeInBytes() {
+        return sizeInBytes;
     }
 
-    void setSizeInBits(long sizeInBits) {
-        SizeInBits = sizeInBits;
+    void setSizeInBytes(long sizeInBytes) {
+        this.sizeInBytes = sizeInBytes;
     }
 
-    void pause(){}
+    synchronized void pause(){
+        this.suspendFlag = true;
+        this.STATUS = DownloadStatus.PAUSED;
+    }
 
-    void resume(){}
+    synchronized void resume(){
+        this.suspendFlag = false;
+        this.STATUS = DownloadStatus.DOWNLOADING;
+        notify();
+    }
 
-    void cancel(){}
+    void cancel(){
+        this.suspendFlag = true;
+        this.STATUS = DownloadStatus.CANCELLED;
+        notify();
+    }
 
     @Override
     public void run(){
 
     }
-
 }
