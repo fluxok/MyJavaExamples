@@ -1,64 +1,94 @@
 package JavaDownloadManager;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 class DownloadTask implements Runnable{
 
     private final String link;
     private final String ID;
 
-    private volatile long sizeInBytes;
+    private AtomicInteger receivedChunks = new AtomicInteger(0);
+    private final int totalChunks = 100;
+    private long sizeInBytes;
 
     private volatile boolean suspendFlag;
     private volatile boolean terminateFlag;
-    private DownloadStatus STATUS =  DownloadStatus.QUEUED;
+    private volatile DownloadStatus STATUS =  DownloadStatus.QUEUED;
 
     DownloadTask(String link, String ID) {
         this.link = link;
         this.ID = ID;
     }
 
-    boolean isSuspendFlag() {
+    private boolean isSuspendFlag() {
         return suspendFlag;
     }
 
-    void setSuspendFlag(boolean suspendFlag) {
+    private void setSuspendFlag(boolean suspendFlag) {
         this.suspendFlag = suspendFlag;
     }
 
-    boolean isTerminateFlag() {
+    private boolean isTerminateFlag() {
         return terminateFlag;
     }
 
-    void setTerminateFlag(boolean terminateFlag) {
+    private void setTerminateFlag(boolean terminateFlag) {
         this.terminateFlag = terminateFlag;
     }
 
-    long getSizeInBytes() {
+    public long getSizeInBytes() {
         return sizeInBytes;
     }
 
-    void setSizeInBytes(long sizeInBytes) {
+    private void setSizeInBytes(long sizeInBytes) {
         this.sizeInBytes = sizeInBytes;
     }
 
+    public String getID() {
+        return ID;
+    }
+
+    synchronized public DownloadStatus getSTATUS() {
+        return STATUS;
+    }
+
     synchronized void pause(){
-        this.suspendFlag = true;
+        setSuspendFlag(true);
         this.STATUS = DownloadStatus.PAUSED;
     }
 
     synchronized void resume(){
-        this.suspendFlag = false;
+        setSuspendFlag(false);
         this.STATUS = DownloadStatus.DOWNLOADING;
         notify();
     }
 
-    void cancel(){
-        this.suspendFlag = true;
+    synchronized void cancel(){
+        setTerminateFlag(true);
         this.STATUS = DownloadStatus.CANCELLED;
         notify();
     }
 
     @Override
-    public void run(){
+    public void run() {
+        STATUS =  DownloadStatus.DOWNLOADING;
 
+        for(int i=0; i<totalChunks; i++){
+            if(isTerminateFlag()) break;
+
+            try {
+                synchronized (this) {
+                    while (isSuspendFlag()) wait();
+                }
+                Thread.sleep(100);
+                receivedChunks.getAndIncrement();
+            }catch (InterruptedException e){
+                setTerminateFlag(true);
+                STATUS =  DownloadStatus.CANCELLED;
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if(!isTerminateFlag()) STATUS =  DownloadStatus.COMPLETED;
     }
 }
