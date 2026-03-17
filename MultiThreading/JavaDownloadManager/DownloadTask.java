@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 class DownloadTask implements Runnable{
 
     private final String link;
-    private final String ID;
+    private final int ID;
 
     private AtomicInteger receivedChunks = new AtomicInteger(0);
     private final int totalChunks = 100;
@@ -15,7 +15,7 @@ class DownloadTask implements Runnable{
     private volatile boolean terminateFlag;
     private volatile DownloadStatus STATUS =  DownloadStatus.QUEUED;
 
-    DownloadTask(String link, String ID) {
+    DownloadTask(String link, int ID) {
         this.link = link;
         this.ID = ID;
     }
@@ -44,7 +44,7 @@ class DownloadTask implements Runnable{
         this.sizeInBytes = sizeInBytes;
     }
 
-    public String getID() {
+    public int getID() {
         return ID;
     }
 
